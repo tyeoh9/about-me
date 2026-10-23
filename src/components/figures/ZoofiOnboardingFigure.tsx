@@ -25,7 +25,7 @@ export function ZoofiOnboardingFigure() {
           <path d="M0 6 H62 M56 1 L62 6 L56 11" vectorEffect="non-scaling-stroke" />
         </svg>
       </div>
-      <dl className="fields" aria-label="Parsed fields">
+      <dl className="fields" role="group" aria-label="Parsed fields">
         {fields.map(([name, value]) => (
           <div key={name}>
             <dt>{name}</dt>

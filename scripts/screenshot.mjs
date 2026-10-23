@@ -49,6 +49,8 @@ const chrome = spawn(
   { stdio: ["ignore", "ignore", "pipe"] },
 );
 
+const STEP_TIMEOUT_MS = 30000;
+
 const cleanup = async () => {
   if (chrome.exitCode === null) {
     const exited = new Promise((resolve) => chrome.once("exit", resolve));
@@ -57,6 +59,29 @@ const cleanup = async () => {
   }
   rmSync(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 };
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, async () => {
+    await cleanup();
+    process.exit(130);
+  });
+}
+
+/** Rejects if `promise` hasn't settled within STEP_TIMEOUT_MS. */
+const withTimeout = (promise, what) =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${what} timed out after ${STEP_TIMEOUT_MS}ms`)), STEP_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 
 try {
   const browserWs = await new Promise((resolve, reject) => {
@@ -84,6 +109,14 @@ try {
   let nextId = 0;
   const pending = new Map();
   const listeners = new Set();
+  // If Chrome or the socket dies mid-run, fail every waiting command instead of hanging.
+  const failAll = (reason) => {
+    for (const { reject } of pending.values()) reject(new Error(reason));
+    pending.clear();
+    for (const fn of listeners) fn({ method: "__closed__", reason });
+  };
+  ws.onclose = () => failAll("DevTools socket closed");
+  chrome.on("exit", (code) => failAll(`Chrome exited (${code})`));
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
     if (msg.id && pending.has(msg.id)) {
@@ -96,21 +129,30 @@ try {
     }
   };
   const send = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      const id = ++nextId;
-      pending.set(id, { resolve, reject });
-      ws.send(JSON.stringify({ id, method, params }));
-    });
+    withTimeout(
+      new Promise((resolve, reject) => {
+        const id = ++nextId;
+        pending.set(id, { resolve, reject });
+        ws.send(JSON.stringify({ id, method, params }));
+      }),
+      method,
+    );
   const once = (method) =>
-    new Promise((resolve) => {
-      const fn = (msg) => {
-        if (msg.method === method) {
-          listeners.delete(fn);
-          resolve(msg.params);
-        }
-      };
-      listeners.add(fn);
-    });
+    withTimeout(
+      new Promise((resolve, reject) => {
+        const fn = (msg) => {
+          if (msg.method === method) {
+            listeners.delete(fn);
+            resolve(msg.params);
+          } else if (msg.method === "__closed__") {
+            listeners.delete(fn);
+            reject(new Error(msg.reason));
+          }
+        };
+        listeners.add(fn);
+      }),
+      method,
+    );
 
   await send("Page.enable");
   mkdirSync(outDir, { recursive: true });

@@ -15,11 +15,12 @@
 
 **Assert (HTML):**
 ```sh
+. .fredrin/tmp/verify-app/current.env
 grep -o 'data-figure="[a-z-]*"' "$OUT/index.html"        # 4, in table order
-grep -c 'We shipped fast and iterated with our first users. Onboarding took 60% less manual work.' "$OUT/index.html"   # 1
-grep -c 'handles the back and forth and sets up the pickup' "$OUT/index.html"   # 1
-grep -c 'short loops\|negotiates' "$OUT/index.html"       # 0 (old copy is gone)
-grep -c '<h1' "$OUT/index.html"                           # 1
+grep -o 'We shipped fast and iterated with our first users. Onboarding took 60% less manual work.' "$OUT/index.html" | wc -l   # >= 1 (copy also appears in the RSC payload)
+grep -o 'handles the back and forth and sets up the pickup' "$OUT/index.html" | wc -l   # >= 1 (copy also appears in the RSC payload)
+grep -o 'short loops\|negotiates' "$OUT/index.html" | wc -l   # 0 (old copy is gone)
+grep -o '<h1' "$OUT/index.html" | wc -l                  # 1
 ```
 
 **Looks right when:** at 1280px each chapter is a two-column row separated by a 1px rule, and every

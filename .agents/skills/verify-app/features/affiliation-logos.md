@@ -10,9 +10,10 @@
 
 **Assert (HTML):**
 ```sh
+. .fredrin/tmp/verify-app/current.env
 grep -o 'aria-label="\(Apple\|UC Berkeley\|UC Irvine\)"' "$OUT/index.html" | sort -u   # 3 lines
 grep -o -- '--logo-src:url(/logos/[a-z-]*\.svg)' "$OUT/index.html" | sort -u             # 3 local paths
-grep -c 'wikimedia\|jsdelivr' "$OUT/index.html"                                          # 0 (no hotlinks)
+grep -o 'wikimedia\|jsdelivr' "$OUT/index.html" | wc -l                                          # 0 (no hotlinks)
 for f in apple uc-berkeley uc-irvine; do curl -s -o /dev/null -w "$f %{http_code}\n" "http://localhost:$PORT/logos/$f.svg"; done  # all 200
 ```
 

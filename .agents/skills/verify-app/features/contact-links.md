@@ -21,10 +21,11 @@ Zoofi AI is plain text, not a link.
 
 **Assert (HTML):**
 ```sh
+. .fredrin/tmp/verify-app/current.env
 grep -o '<a [^>]*>' "$OUT/index.html" | grep -o 'href="[^"]*"' | sort -u        # matches the list above, nothing else
 grep -o '<a href="http[^>]*>' "$OUT/index.html" | grep -vc 'target="_blank" rel="noopener noreferrer"'   # 0
-grep -ci 'fredrin' "$OUT/index.html"                                            # 0
-grep -cE '\+?1?[ (-]*[0-9]{3}[ )-]*[0-9]{3}[ -][0-9]{4}' "$OUT/index.html"       # 0 (no phone number)
+grep -oi 'fredrin' "$OUT/index.html" | wc -l                                            # 0
+grep -oE '\(?[0-9]{3}\)?[ .-][0-9]{3}[ .-][0-9]{4}' "$OUT/index.html" | wc -l       # 0 (no phone number)
 ```
 
 **Looks right when:** links have a thin `#C9C5BC` underline offset below the text, and a Tab key

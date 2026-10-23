@@ -405,8 +405,8 @@ a:focus-visible {
 
 .thread-time {
   margin: 4px 0;
-  color: var(--faint);
-  font-size: 11px;
+  color: var(--soft);
+  font-size: 12px;
   text-align: center;
 }
 
@@ -579,6 +579,7 @@ a:focus-visible {
 
 @media (max-width: 760px) {
   :root {
+    /* 32px on desktop per the spec; narrower on phones so figures keep room at 360px. */
     --gutter: 20px;
   }
 

@@ -9,6 +9,9 @@ Proves the site works by running the real dev server and looking at `/`, not by 
 Everything below runs from the repo root. Evidence goes to `.fredrin/tmp/verify-app/<timestamp>/`
 (git-ignored); use any git-ignored folder if `.fredrin/` doesn't exist.
 
+Agent shells often don't keep variables between commands, so Launch saves `OUT` and `PORT` to
+`.fredrin/tmp/verify-app/current.env`, and every later block starts by sourcing it.
+
 ## 1. Doctor (read-only)
 
 Run these and stop on a failure. They change nothing.
@@ -34,6 +37,7 @@ From a clean checkout:
 pnpm install
 OUT=.fredrin/tmp/verify-app/$(date +%Y%m%d-%H%M%S); mkdir -p "$OUT"
 PORT=${PORT:-3000}
+printf 'OUT=%s\nPORT=%s\n' "$OUT" "$PORT" > .fredrin/tmp/verify-app/current.env
 nohup pnpm dev --port "$PORT" > "$OUT/dev.log" 2>&1 &
 echo $! > "$OUT/dev.pid"     # remember exactly what we started
 ```
@@ -41,6 +45,7 @@ echo $! > "$OUT/dev.pid"     # remember exactly what we started
 **Ready check:** poll for up to 60s until `/` returns 200 and contains "Thomas Yeoh":
 
 ```sh
+. .fredrin/tmp/verify-app/current.env
 for i in $(seq 1 60); do
   code=$(curl -s -o "$OUT/index.html" -w '%{http_code}' "http://localhost:$PORT/")
   [ "$code" = 200 ] && grep -q "Thomas Yeoh" "$OUT/index.html" && echo READY && break
@@ -55,11 +60,16 @@ Not ready after 60s: read `$OUT/dev.log`, then run cleanup.
 The site has one route, `/`. Take full-page screenshots at desktop and phone widths:
 
 ```sh
+. .fredrin/tmp/verify-app/current.env
 node --experimental-websocket scripts/screenshot.mjs "http://localhost:$PORT/" "$OUT" 1280 390@3
 # -> $OUT/1280.png (2x) and $OUT/390.png (3x); prints {file,width,height,scale} per shot
 ```
 
-(Use plain `node` on Node 22+. The script is dependency-free; it drives headless Chrome over CDP.)
+(Use plain `node` on Node 22+. The script is dependency-free; it drives headless Chrome over CDP,
+gives each step 30s before failing, and kills its Chrome on exit or Ctrl-C.)
+
+Next serves the page as essentially one line of HTML, so count matches with `grep -o … | wc -l`,
+never `grep -c` (that counts lines and always prints 0 or 1).
 
 Then check the HTML the server returned (`$OUT/index.html`) for each feature's asserts in
 `features/`. Look at the PNGs yourself: read them and compare against the feature files'
@@ -90,9 +100,12 @@ In a Fredrin ticket, upload the shots: `./.fredrin/fredrin ticket upload "$OUT/1
 Kill **only** the dev server this skill started, and keep the evidence:
 
 ```sh
+. .fredrin/tmp/verify-app/current.env
+test -n "$OUT" && test -n "$PORT" || echo "current.env missing: find the PID in the newest $OUT/dev.pid by hand"
 kill "$(cat "$OUT/dev.pid")" 2>/dev/null
 # pnpm spawns next as a child; stop the one still bound to our port, if any
 lsof -nP -tiTCP:$PORT -sTCP:LISTEN | xargs -r kill 2>/dev/null
+sleep 1; lsof -nP -iTCP:$PORT -sTCP:LISTEN && echo "STILL RUNNING on $PORT" || echo "port $PORT released"
 ```
 
 Never `pkill node` / `pkill next`: other worktrees may be running their own servers.
