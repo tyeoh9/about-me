@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Fredrin's machine-local tool state (git-ignored).
     ".fredrin/**",
+    // Local GitHub Pages preview of out/ (git-ignored; see README).
+    ".preview/**",
   ]),
 ]);
 
