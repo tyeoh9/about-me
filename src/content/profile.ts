@@ -52,10 +52,13 @@ export const profile = {
     "I build agents that do real work, and the systems that keep them standing up in production. Usually it starts as a small experiment to see if the idea holds. Then I ship it and keep going.",
 } as const;
 
+/** "/about-me" in the GitHub Pages build, "" otherwise (see next.config.ts). */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const logos: Logo[] = [
-  { name: "Apple", src: "/logos/apple.svg", height: 31, aspect: 1 },
-  { name: "UC Berkeley", src: "/logos/uc-berkeley.svg", height: 30, aspect: 215.125 / 67.592 },
-  { name: "UC Irvine", src: "/logos/uc-irvine.svg", height: 20, aspect: 254.2325 / 108.87875 },
+  { name: "Apple", src: `${basePath}/logos/apple.svg`, height: 31, aspect: 1 },
+  { name: "UC Berkeley", src: `${basePath}/logos/uc-berkeley.svg`, height: 30, aspect: 215.125 / 67.592 },
+  { name: "UC Irvine", src: `${basePath}/logos/uc-irvine.svg`, height: 20, aspect: 254.2325 / 108.87875 },
 ];
 
 export const chapters: Chapter[] = [

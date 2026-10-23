@@ -6,6 +6,8 @@ description: Launch Thomas Yeoh's About Me site locally, health-check it, drive 
 # verify-app
 
 Proves the site works by running the real dev server and looking at `/`, not by trusting a build.
+The live site is the GitHub Pages static export at https://tyeoh9.github.io/about-me/; when a change
+touches the build, base path or asset URLs, also run **Static export** (section 6).
 Everything below runs from the repo root. Evidence goes to `.fredrin/tmp/verify-app/<timestamp>/`
 (git-ignored); use any git-ignored folder if `.fredrin/` doesn't exist.
 
@@ -110,6 +112,30 @@ sleep 1; lsof -nP -iTCP:$PORT -sTCP:LISTEN && echo "STILL RUNNING on $PORT" || e
 
 Never `pkill node` / `pkill next`: other worktrees may be running their own servers.
 Leave `$OUT/` in place.
+
+## 6. Static export (GitHub Pages build)
+
+The Pages build serves every URL under `/about-me/`. Build it, serve `out/` under that path, and drive it
+the same way (Python's built-in server prints one log line per request, so 404s show up in `pages.log`):
+
+```sh
+. .fredrin/tmp/verify-app/current.env
+PAGES_BASE_PATH=/about-me pnpm build
+mkdir -p .preview && rm -rf .preview/about-me && cp -R out .preview/about-me   # .preview/ is git-ignored
+nohup python3 -m http.server 4000 --directory .preview > "$OUT/pages.log" 2>&1 &
+echo $! > "$OUT/pages.pid"
+curl -s -o "$OUT/pages.html" -w '%{http_code}\n' http://localhost:4000/about-me/   # expect 200
+node --experimental-websocket scripts/screenshot.mjs "http://localhost:4000/about-me/" "$OUT/pages" 1280 390@3
+grep -E '" (404|500) ' "$OUT/pages.log" || echo "no 404s"
+grep -oE '(href|src)="/[^"]*"|url\(/[^)]*\)' "$OUT/pages.html" | grep -v '/about-me/' || echo "every URL under /about-me/"
+kill "$(cat "$OUT/pages.pid")"
+```
+
+Check the screenshots the same way as section 3: the logos must not be blank (a missing base path on
+a mask URL renders an empty box, not an error in the page), and the text must be Instrument Sans.
+
+After a merge to `main`, the `pages` workflow deploys it; check the live page with
+`curl -s https://tyeoh9.github.io/about-me/ | grep -o "Thomas Yeoh" | head -1`.
 
 ## Feature map
 
