@@ -7,7 +7,9 @@ canonical entry point under the [AGENTS.md](https://agents.md) standard.
 
 Thomas Yeoh's personal website: one statically rendered About Me page at `/`, built with
 Next.js (App Router) and TypeScript. It has no database, no API routes and no required env
-vars. It is meant to deploy on Vercel (a build on Vercel, a preview per branch, production on merge).
+vars. It builds as a static export (`output: "export"`, to `out/`) and is live on GitHub Pages at
+https://tyeoh9.github.io/about-me/, deployed by `.github/workflows/pages.yml` on every push to `main`.
+It stays Vercel-compatible: without `PAGES_BASE_PATH` it builds and serves at `/`.
 
 - `src/content/profile.ts`: every word and link on the page, typed. Change copy here, not in components.
 - `src/app/page.tsx`, `src/app/layout.tsx`: the page and its metadata (title, description, Open Graph).
@@ -26,7 +28,11 @@ pnpm dev              # dev server on http://localhost:3000
 pnpm build            # production build; runs TypeScript. "/" must show as ○ (Static)
 pnpm lint             # ESLint (next/core-web-vitals + typescript)
 pnpm exec tsc --noEmit  # typecheck only
+PAGES_BASE_PATH=/about-me pnpm build  # the GitHub Pages build: every URL under /about-me/
 ```
+
+To preview the Pages build, copy `out/` to `.preview/about-me/` and serve `.preview/`
+(`python3 -m http.server 4000 --directory .preview`, then open http://localhost:4000/about-me/).
 
 There is no test suite. To see the page working, use the `verify-app` skill
 (`.claude/skills/verify-app/SKILL.md`, or `.agents/skills/verify-app/SKILL.md` for Codex):
@@ -45,7 +51,10 @@ it launches the dev server and takes 1280px and 390px screenshots.
   does this for any `http(s)` href). A span with no `href` renders as plain text (Zoofi AI has no public URL).
 - **Never** add a phone number, and never mention Fredrin on the page.
 - Logos are local files rendered as CSS masks over one warm gray (`--logo`). Don't hotlink them.
-- Keep `/` static: no request-time APIs (`cookies()`, `headers()`, uncached fetches) on the page.
+- Keep `/` static: no request-time APIs (`cookies()`, `headers()`, uncached fetches) on the page. The static
+  export fails the build on them, and `cacheComponents` / `partialPrefetching` are off because PPR can't run in export mode.
+- **Base path:** Next prefixes its own assets and `next/link`, but not URLs inside CSS or inline styles. Prefix any
+  root-absolute asset URL with `process.env.NEXT_PUBLIC_BASE_PATH` (as the logo `src`s in `profile.ts` do).
 - `--soft` is `#6F6C65`, not the mockup's `#77746D`: the darker value is needed to pass AA on the figure plate.
 - Accessibility: there is one `h1` (the name), each section has an `h2`, links get a visible
   `:focus-visible` outline, logos and figures have aria labels, and body text meets AA contrast.
