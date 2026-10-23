@@ -1,6 +1,11 @@
-# fredrin-fde-application
+# Thomas Yeoh
 
-Created with [Fredrin](https://fredrin.com).
+Personal About Me site, built with Next.js (App Router) and TypeScript. The page is statically rendered and ready to deploy on Vercel with no env vars.
 
-This project runs on local git. It has no remote, and it does not need one —
-branches, worktrees, diffs and merges are all local.
+```sh
+pnpm install
+pnpm dev      # http://localhost:3000
+pnpm build
+```
+
+Page copy and links live in `src/content/profile.ts`. See `AGENTS.md` for conventions.

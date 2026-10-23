@@ -1,7 +1,8 @@
 :root {
   --bg: #faf9f6;
   --text: #1f1e1c;
-  --soft: #77746d;
+  /* Spec is #77746D; nudged darker so soft text clears WCAG AA (4.5:1) on both bg and plate. */
+  --soft: #6f6c65;
   --faint: #a8a49b;
   --rule: #e6e2da;
   --plate: #f2efe9;
